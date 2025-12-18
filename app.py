@@ -5,41 +5,36 @@ from google.oauth2.service_account import Credentials
 
 app = Flask(__name__)
 
-SPREADSHEET_NAME = "249Group – Clients Tracking"
-SHEET_NAME = "Clients"
-
-SCOPES = [
-    "https://www.googleapis.com/auth/spreadsheets",
-    "https://www.googleapis.com/auth/drive"
-]
+SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
+SPREADSHEET_ID = "1lT5v9iA4x1n8xdzDTQiUWqIh4GBfqnvnNe-8gyNQT5Q"
+SHEET_NAME = "Clients"  # لازم يكون مطابق 100%
 
 def get_sheet():
     sa_json = os.environ.get("GOOGLE_SERVICE_ACCOUNT_JSON")
-    if not sa_json:
-        raise RuntimeError("Missing GOOGLE_SERVICE_ACCOUNT_JSON env var")
-
     info = json.loads(sa_json)
+
     creds = Credentials.from_service_account_info(info, scopes=SCOPES)
     client = gspread.authorize(creds)
-    return client.open(SPREADSHEET_NAME).worksheet(SHEET_NAME)
 
-def row_to_dict(row, headers):
-    return dict(zip(headers, row))
+    return client.open_by_key(SPREADSHEET_ID).worksheet(SHEET_NAME)
 
-@app.route("/clients", methods=["GET"])
+@app.route("/")
+def home():
+    return {"status": "249Group API is running"}
+
+@app.route("/clients")
 def get_clients():
     sheet = get_sheet()
-    data = sheet.get_all_values()
-    headers = data[0]
-    rows = data[1:]
-    return jsonify([row_to_dict(r, headers) for r in rows])
+    records = sheet.get_all_records()
+    return jsonify(records)
 
-@app.route("/client/<client_id>", methods=["GET"])
+@app.route("/client/<client_id>")
 def get_client(client_id):
     sheet = get_sheet()
-    data = sheet.get_all_values()
-    headers = data[0]
-    for r in data[1:]:
-        if r[0] == client_id:
-            return jsonify(row_to_dict(r, headers))
+    records = sheet.get_all_records()
+
+    for row in records:
+        if str(row.get("client_id")) == client_id:
+            return jsonify(row)
+
     return jsonify({"error": "Client not found"}), 404
