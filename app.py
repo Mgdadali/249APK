@@ -15,7 +15,7 @@ scopes = [
 ]
 
 creds = Credentials.from_service_account_file(
-    "service_account.json",
+    "group-api-481611-2e109b7db0c5.json",
     scopes=scopes
 )
 
